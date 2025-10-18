@@ -1,0 +1,12 @@
+name: A Simple "Hello World" Workflow
+
+on: [push]
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Greet the user
+        run: echo "Hello, World!"
+      - name: Print the repository and branch
+        run: echo "This action is running in the ${{ github.repository }} repository on the ${{ github.ref }} branch."
