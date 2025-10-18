@@ -1,62 +1,60 @@
-# The name of this workflow, which you'll see in the GitHub Actions tab.
 name: Interactive iOS Simulator Session
 
-# This makes the workflow manually triggerable.
 on:
   workflow_dispatch:
 
 jobs:
   start-interactive-session:
-
-    # We must use a macOS runner for Xcode and the iOS Simulator.
     runs-on: macos-latest
 
-    # These are the steps the remote Mac will follow.
     steps:
-      # Step 1: Check out your Flutter code from the repository.
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up the Flutter environment.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      # --- NEW STEP ADDED HERE ---
-      # Step 3: Install tmate using Homebrew.
-      # We do this to ensure tmate is available, even if it's not in the default runner image.
       - name: Install tmate
         run: brew install tmate
 
-      # Step 4: Start VNC and get connection details
+      # --- THIS IS THE NEW STEP THAT SOLVES THE PASSWORD PROBLEM ---
+      - name: Setup Passwordless SSH
+        run: |
+          # Generate a new, passwordless SSH key pair (id_rsa and id_rsa.pub)
+          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+          
+          # Copy the public key to the list of keys that are allowed to log in
+          cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+          
+          # Set the correct permissions for the authorized_keys file
+          chmod 600 ~/.ssh/authorized_keys
+          
+          echo "Passwordless SSH for localhost has been configured."
+
       - name: Start VNC Server and Establish Tunnel
         run: |
-          # Start and configure the VNC server (same as before)
+          # Start and configure the VNC server
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all
           VNC_PASSWORD='123456'
           echo "VNC Password is: $VNC_PASSWORD"
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -users $(whoami) -access -on -privs -all -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNC_PASSWORD"
           
-          # Start tmate (same as before)
+          # Start tmate and get connection strings
           echo "Starting tmate tunnel..."
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
 
-          # --- THIS IS THE UPDATED PART ---
-          # Print BOTH the SSH and Web Shell connection strings
+          # Print connection options
           echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
           echo "!!!               CONNECT USING ONE OF THESE                !!!"
           echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-          echo "!!! To connect via SSH (if it works):                       !!!"
-          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
-          echo "!!!                                                         !!!"
           echo "!!! To connect via your Web Browser (more reliable):        !!!"
           tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
           echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-      # Step 5: Keep the job alive.
-      # A GitHub Actions job normally ends when the last command finishes.
+
       - name: Keep Session Alive
         run: |
-          echo "Session is active. Connect using the SSH details from the previous step."
-          sleep 21000 # Keeps the job alive for ~5.8 hours
+          echo "Session is active. Connect using the details from the previous step."
+          sleep 21000
