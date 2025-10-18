@@ -169,7 +169,7 @@ class SettingsScreen extends StatelessWidget {
                   future: PurchaseService().checkPremiumStatus(),
                   builder: (context, snapshot) {
                     final isPremium = snapshot.data ?? false;
-                    
+
                     if (isPremium) {
                       return ListTile(
                         leading: const Icon(Icons.star, color: Colors.amber),

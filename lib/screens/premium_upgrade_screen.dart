@@ -16,7 +16,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Choose Your Plan'),
@@ -69,9 +69,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Subscription Plans
             Text(
               'Choose Your Plan',
@@ -80,7 +80,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Monthly Plan
             _buildPlanCard(
               context,
@@ -90,9 +90,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
               description: 'Perfect for trying premium features',
               isPopular: false,
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Yearly Plan
             _buildPlanCard(
               context,
@@ -102,9 +102,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
               description: 'Best value - Save 20% compared to monthly',
               isPopular: true,
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Features List
             Text(
               'Premium Features',
@@ -113,7 +113,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildFeatureItem(
               context,
               Icons.block,
@@ -138,9 +138,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
               'Support Development',
               'Help us continue improving the app',
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Subscribe Button
             SizedBox(
               width: double.infinity,
@@ -154,7 +154,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                     borderRadius: BorderRadius.circular(28),
                   ),
                 ),
-                child: _isLoading 
+                child: _isLoading
                   ? const SizedBox(
                       height: 24,
                       width: 24,
@@ -179,9 +179,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                     ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Restore purchases button
             SizedBox(
               width: double.infinity,
@@ -190,9 +190,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                 child: const Text('Restore Purchases'),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Terms and Privacy
             Text(
               'By subscribing, you agree to our Terms of Service and Privacy Policy. Subscription auto-renews unless cancelled. Manage subscription in Google Play Store.',
@@ -216,7 +216,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
   }) {
     final theme = Theme.of(context);
     final isSelected = _selectedPlan == planId;
-    
+
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = planId),
       child: Container(
@@ -254,9 +254,9 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                         )
                       : null,
                   ),
-                  
+
                   const SizedBox(width: 16),
-                  
+
                   // Plan details
                   Expanded(
                     child: Column(
@@ -278,7 +278,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Price
                   Text(
                     price,
@@ -290,7 +290,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
                 ],
               ),
             ),
-            
+
             // Popular badge
             if (isPopular)
               Positioned(
@@ -322,7 +322,7 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
 
   Widget _buildFeatureItem(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -368,11 +368,11 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
 
   Future<void> _subscribe() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final isYearly = _selectedPlan == 'yearly';
       final success = await _purchaseService.purchaseSubscription(isYearly: isYearly);
-      
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -406,22 +406,22 @@ class _PremiumUpgradeScreenState extends State<PremiumUpgradeScreen> {
 
   Future<void> _restorePurchases() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final success = await _purchaseService.restorePurchases();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success 
+              success
                 ? 'Subscriptions restored successfully!'
                 : 'No subscriptions found to restore.',
             ),
             backgroundColor: success ? Colors.green : Colors.orange,
           ),
         );
-        
+
         // Refresh the screen
         if (success) {
           Navigator.of(context).pop();

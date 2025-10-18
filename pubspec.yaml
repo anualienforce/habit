@@ -57,7 +57,7 @@ dependencies:
   timezone: ^0.10.1
   permission_handler: ^11.3.0
   
-  # Ads and Monetization
+#  # Ads and Monetization
   google_mobile_ads: ^5.1.0
   in_app_purchase: ^3.2.0
   

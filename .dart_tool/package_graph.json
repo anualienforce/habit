@@ -71,27 +71,6 @@
       ]
     },
     {
-      "name": "in_app_purchase",
-      "version": "3.2.3",
-      "dependencies": [
-        "flutter",
-        "in_app_purchase_android",
-        "in_app_purchase_platform_interface",
-        "in_app_purchase_storekit"
-      ]
-    },
-    {
-      "name": "google_mobile_ads",
-      "version": "5.3.1",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "webview_flutter",
-        "webview_flutter_android",
-        "webview_flutter_wkwebview"
-      ]
-    },
-    {
       "name": "permission_handler",
       "version": "11.4.0",
       "dependencies": [
@@ -305,62 +284,6 @@
       "version": "3.0.6",
       "dependencies": [
         "typed_data"
-      ]
-    },
-    {
-      "name": "in_app_purchase_storekit",
-      "version": "0.4.4",
-      "dependencies": [
-        "collection",
-        "flutter",
-        "in_app_purchase_platform_interface",
-        "json_annotation"
-      ]
-    },
-    {
-      "name": "in_app_purchase_platform_interface",
-      "version": "1.4.0",
-      "dependencies": [
-        "flutter",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "in_app_purchase_android",
-      "version": "0.4.0+4",
-      "dependencies": [
-        "collection",
-        "flutter",
-        "in_app_purchase_platform_interface"
-      ]
-    },
-    {
-      "name": "webview_flutter",
-      "version": "4.13.0",
-      "dependencies": [
-        "flutter",
-        "webview_flutter_android",
-        "webview_flutter_platform_interface",
-        "webview_flutter_wkwebview"
-      ]
-    },
-    {
-      "name": "webview_flutter_wkwebview",
-      "version": "3.23.0",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "path",
-        "webview_flutter_platform_interface"
-      ]
-    },
-    {
-      "name": "webview_flutter_android",
-      "version": "4.10.1",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "webview_flutter_platform_interface"
       ]
     },
     {
@@ -633,22 +556,6 @@
       ]
     },
     {
-      "name": "json_annotation",
-      "version": "4.9.0",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "webview_flutter_platform_interface",
-      "version": "2.14.0",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
       "name": "web",
       "version": "1.1.1",
       "dependencies": []
@@ -727,6 +634,99 @@
       "dependencies": [
         "meta",
         "path"
+      ]
+    },
+    {
+      "name": "in_app_purchase",
+      "version": "3.2.3",
+      "dependencies": [
+        "flutter",
+        "in_app_purchase_android",
+        "in_app_purchase_platform_interface",
+        "in_app_purchase_storekit"
+      ]
+    },
+    {
+      "name": "in_app_purchase_platform_interface",
+      "version": "1.4.0",
+      "dependencies": [
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "google_mobile_ads",
+      "version": "5.3.1",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "webview_flutter",
+        "webview_flutter_android",
+        "webview_flutter_wkwebview"
+      ]
+    },
+    {
+      "name": "webview_flutter",
+      "version": "4.13.0",
+      "dependencies": [
+        "flutter",
+        "webview_flutter_android",
+        "webview_flutter_platform_interface",
+        "webview_flutter_wkwebview"
+      ]
+    },
+    {
+      "name": "webview_flutter_platform_interface",
+      "version": "2.14.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "webview_flutter_wkwebview",
+      "version": "3.23.1",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "path",
+        "webview_flutter_platform_interface"
+      ]
+    },
+    {
+      "name": "in_app_purchase_android",
+      "version": "0.4.0+6",
+      "dependencies": [
+        "collection",
+        "flutter",
+        "in_app_purchase_platform_interface"
+      ]
+    },
+    {
+      "name": "in_app_purchase_storekit",
+      "version": "0.4.6",
+      "dependencies": [
+        "collection",
+        "flutter",
+        "in_app_purchase_platform_interface",
+        "json_annotation"
+      ]
+    },
+    {
+      "name": "json_annotation",
+      "version": "4.9.0",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "webview_flutter_android",
+      "version": "4.10.5",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "webview_flutter_platform_interface"
       ]
     }
   ],

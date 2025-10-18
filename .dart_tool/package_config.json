@@ -135,9 +135,9 @@
     },
     {
       "name": "in_app_purchase_android",
-      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/in_app_purchase_android-0.4.0+4",
+      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/in_app_purchase_android-0.4.0+6",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.9"
     },
     {
       "name": "in_app_purchase_platform_interface",
@@ -147,9 +147,9 @@
     },
     {
       "name": "in_app_purchase_storekit",
-      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/in_app_purchase_storekit-0.4.4",
+      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/in_app_purchase_storekit-0.4.6",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.9"
     },
     {
       "name": "intl",
@@ -477,9 +477,9 @@
     },
     {
       "name": "webview_flutter_android",
-      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/webview_flutter_android-4.10.1",
+      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/webview_flutter_android-4.10.5",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.9"
     },
     {
       "name": "webview_flutter_platform_interface",
@@ -489,9 +489,9 @@
     },
     {
       "name": "webview_flutter_wkwebview",
-      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.0",
+      "rootUri": "file:///Users/anandprajapati/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.1",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.9"
     },
     {
       "name": "xdg_directories",

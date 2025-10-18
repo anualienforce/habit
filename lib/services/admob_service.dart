@@ -16,10 +16,10 @@ class AdMobService {
   InterstitialAd? _interstitialAd;
   bool _isInterstitialAdLoaded = false;
   bool _isBannerAdLoaded = false;
-  
+
   // Premium status checking
   final PurchaseService _purchaseService = PurchaseService();
-  
+
   /// Check if user has premium (no ads)
   bool get isPremium => _purchaseService.isPremium;
 
@@ -30,17 +30,17 @@ class AdMobService {
 
   // Get banner ad unit ID (Android only)
   String get bannerAdUnitId {
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('Ads are only supported on Android');
-    }
+    // if (!Platform.isAndroid) {
+    //   throw UnsupportedError('Ads are only supported on Android');
+    // }
     return _bannerAdUnitId;
   }
 
   // Get interstitial ad unit ID (Android only)
   String get interstitialAdUnitId {
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('Ads are only supported on Android');
-    }
+    // if (!Platform.isAndroid) {
+    //   throw UnsupportedError('Ads are only supported on Android');
+    // }
     return _interstitialAdUnitId;
   }
 
@@ -51,11 +51,11 @@ class AdMobService {
       print(' Premium user - no banner ads');
       return null;
     }
-    
-    if (!Platform.isAndroid) {
-      throw UnsupportedError('Ads are only supported on Android');
-    }
-    
+
+    // if (!Platform.isAndroid) {
+    //   throw UnsupportedError('Ads are only supported on Android');
+    // }
+
     _bannerAd = BannerAd(
       adUnitId: bannerAdUnitId,
       size: AdSize.banner,
@@ -77,7 +77,7 @@ class AdMobService {
     _bannerAd!.load();
     return _bannerAd!;
   }
-  
+
   // Create banner ad (backward compatibility)
   BannerAd? createBannerAd() {
     return loadBannerAd();
@@ -90,12 +90,12 @@ class AdMobService {
       print('🎉 Premium user - no interstitial ads');
       return;
     }
-    
-    if (!Platform.isAndroid) {
-      print('Ads are only supported on Android');
-      return;
-    }
-    
+
+    // if (!Platform.isAndroid) {
+    //   print('Ads are only supported on Android');
+    //   return;
+    // }
+
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,
       request: const AdRequest(),
@@ -104,7 +104,7 @@ class AdMobService {
           print('Interstitial ad loaded');
           _interstitialAd = ad;
           _isInterstitialAdLoaded = true;
-          
+
           // Set full screen content callback
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
@@ -142,7 +142,7 @@ class AdMobService {
       print('Ads are only supported on Android');
       return;
     }
-    
+
     if (_isInterstitialAdLoaded && _interstitialAd != null) {
       _interstitialAd!.show();
     } else {

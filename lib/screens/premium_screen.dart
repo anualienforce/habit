@@ -15,7 +15,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Premium'),
@@ -68,9 +68,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Premium Features
             Text(
               'Premium Features',
@@ -79,7 +79,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildFeatureItem(
               context,
               Icons.block,
@@ -104,9 +104,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
               'Support Development',
               'Help us continue improving the app',
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Current Status
             if (_purchaseService.isPremium) ...[
               Container(
@@ -141,15 +141,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Restore purchases button for premium users
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: _isLoading ? null : _restorePurchases,
-                  child: _isLoading 
+                  child: _isLoading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
@@ -172,7 +172,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                   ),
-                  child: _isLoading 
+                  child: _isLoading
                     ? const SizedBox(
                         height: 24,
                         width: 24,
@@ -197,9 +197,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Restore purchases button
               SizedBox(
                 width: double.infinity,
@@ -209,9 +209,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 24),
-            
+
             // Terms and Privacy
             Text(
               'By subscribing, you agree to our Terms of Service and Privacy Policy. Subscription auto-renews monthly unless cancelled. Manage subscription in Google Play Store.',
@@ -228,7 +228,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Widget _buildFeatureItem(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -274,10 +274,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Future<void> _purchasePremium() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final success = await _purchaseService.purchasePremium();
-      
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -311,22 +311,22 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Future<void> _restorePurchases() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final success = await _purchaseService.restorePurchases();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success 
+              success
                 ? 'Purchases restored successfully!'
                 : 'No purchases found to restore.',
             ),
             backgroundColor: success ? Colors.green : Colors.orange,
           ),
         );
-        
+
         // Refresh the screen
         if (success) {
           setState(() {});

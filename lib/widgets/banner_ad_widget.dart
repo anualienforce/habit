@@ -33,7 +33,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     if (!Platform.isAndroid) {
       return;
     }
-    
+
     try {
       _bannerAd = AdMobService().createBannerAd();
       _bannerAd!.load().then((_) {
@@ -60,11 +60,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     if (PurchaseService().isPremium) {
       return const SizedBox.shrink();
     }
-    
+
     // Only show ads on Android
-    if (!Platform.isAndroid) {
-      return const SizedBox.shrink();
-    }
+    // if (!Platform.isAndroid) {
+    //   return const SizedBox.shrink();
+    // }
 
     if (!_isAdLoaded || _bannerAd == null) {
       return const SizedBox.shrink();
