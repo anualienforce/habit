@@ -1,0 +1,41 @@
+Launching lib\main.dart on sdk gphone64 x86 64 in debug mode...
+Running Gradle task 'assembleDebug'...
+e: file:///C:/Users/onepr/StudioProjects/habittracker/android/app/build.gradle.kts:43:30: Expecting an element
+e: file:///C:/Users/onepr/StudioProjects/habittracker/android/app/build.gradle.kts:43:9: Function invocation 'minSdkVersion(...)' expected
+e: file:///C:/Users/onepr/StudioProjects/habittracker/android/app/build.gradle.kts:43:9: None of the following functions can be called with the arguments supplied:
+public abstract fun minSdkVersion(minSdkVersion: Int): Unit defined in com.android.build.api.dsl.ApplicationDefaultConfig
+public abstract fun minSdkVersion(minSdkVersion: String?): Unit defined in com.android.build.api.dsl.ApplicationDefaultConfig
+e: file:///C:/Users/onepr/StudioProjects/habittracker/android/app/build.gradle.kts:43:9: Variable expected
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file 'C:\Users\onepr\StudioProjects\habittracker\android\app\build.gradle.kts' line: 43
+
+* What went wrong:
+Script compilation errors:
+
+  Line 43:         minSdkVersion flutter.minSdkVersion
+                                        ^ Expecting an element
+
+  Line 43:         minSdkVersion flutter.minSdkVersion
+                   ^ Function invocation 'minSdkVersion(...)' expected
+
+  Line 43:         minSdkVersion flutter.minSdkVersion
+                   ^ None of the following functions can be called with the arguments supplied:
+                       public abstract fun minSdkVersion(minSdkVersion: Int): Unit defined in com.android.build.api.dsl.ApplicationDefaultConfig
+                       public abstract fun minSdkVersion(minSdkVersion: String?): Unit defined in com.android.build.api.dsl.ApplicationDefaultConfig
+
+  Line 43:         minSdkVersion flutter.minSdkVersion
+                   ^ Variable expected
+
+4 errors
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 9s
+Error: Gradle task assembleDebug failed with exit code 1

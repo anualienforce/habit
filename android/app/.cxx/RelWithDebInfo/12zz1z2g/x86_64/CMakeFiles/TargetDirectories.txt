@@ -1,0 +1,2 @@
+C:/Users/onepr/StudioProjects/habittracker/android/app/.cxx/RelWithDebInfo/12zz1z2g/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/onepr/StudioProjects/habittracker/android/app/.cxx/RelWithDebInfo/12zz1z2g/x86_64/CMakeFiles/rebuild_cache.dir

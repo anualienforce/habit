@@ -1,0 +1,273 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
+import '../models/category.dart';
+import '../providers/habit_provider.dart';
+import '../models/habit_log.dart';
+
+class CalendarScreen extends StatefulWidget {
+  const CalendarScreen({super.key});
+
+  @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  late final ValueNotifier<DateTime> _selectedDay;
+  late final ValueNotifier<DateTime> _focusedDay;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  String? _selectedHabitId;
+  Map<String, List<HabitLog>> _habitLogs = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+    _selectedDay = ValueNotifier(today);
+    _focusedDay = ValueNotifier(today);
+    _loadHabitLogs();
+  }
+
+  @override
+  void dispose() {
+    _selectedDay.dispose();
+    _focusedDay.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHabitLogs() async {
+    final habitProvider = Provider.of<HabitProvider>(context, listen: false);
+    final habits = habitProvider.habits;
+    
+    final logs = <String, List<HabitLog>>{};
+    for (final habit in habits) {
+      final habitLogs = await habitProvider.getHabitLogs(
+        habit.id,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now().add(const Duration(days: 30)),
+      );
+      logs[habit.id] = habitLogs;
+    }
+    
+    setState(() {
+      _habitLogs = logs;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calendar'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (value) {
+              setState(() {
+                _selectedHabitId = value == 'all' ? null : value;
+              });
+            },
+            itemBuilder: (context) {
+              final habitProvider = Provider.of<HabitProvider>(context, listen: false);
+              final habits = habitProvider.habits;
+              
+              return [
+                const PopupMenuItem(
+                  value: 'all',
+                  child: Text('All Habits'),
+                ),
+                ...habits.map((habit) => PopupMenuItem(
+                  value: habit.id,
+                  child: Text(habit.name),
+                )),
+              ];
+            },
+          ),
+        ],
+      ),
+      body: Consumer<HabitProvider>(
+        builder: (context, habitProvider, child) {
+          return Column(
+            children: [
+              // Calendar
+              Card(
+                margin: const EdgeInsets.all(16),
+                child: TableCalendar<HabitLog>(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay.value,
+                  calendarFormat: _calendarFormat,
+                  eventLoader: _getEventsForDay,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  calendarStyle: CalendarStyle(
+                    outsideDaysVisible: false,
+                    weekendTextStyle: TextStyle(
+                      color: theme.colorScheme.primary,
+                    ),
+                    holidayTextStyle: TextStyle(
+                      color: theme.colorScheme.primary,
+                    ),
+                    markerDecoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  onDaySelected: _onDaySelected,
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  onPageChanged: (focusedDay) {
+                    _focusedDay.value = focusedDay;
+                  },
+                  selectedDayPredicate: (day) {
+                    return isSameDay(_selectedDay.value, day);
+                  },
+                ),
+              ),
+              
+              // Selected day habits
+              Expanded(
+                child: ValueListenableBuilder<DateTime>(
+                  valueListenable: _selectedDay,
+                  builder: (context, selectedDay, _) {
+                    final dayLogs = _getLogsForDay(selectedDay);
+                    
+                    if (dayLogs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 64,
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No habits for ${DateFormat('MMM d, y').format(selectedDay)}',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Select a day with habits to see the details',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: dayLogs.length,
+                      itemBuilder: (context, index) {
+                        final log = dayLogs[index];
+                        final habit = habitProvider.habits
+                            .firstWhere((h) => h.id == log.habitId);
+                        final category = habitProvider.getCategoryById(habit.categoryId);
+                        
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: category?.color.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                (category != null)
+                                    ? (kCategoryIconConstants[category.id] ??
+                                    kCategoryIconConstants[category.id] ?? IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'))
+                                    : Icons.task_alt,
+                                color: category?.color ?? theme.colorScheme.primary,
+                              ),
+                            ),
+                            title: Text(habit.name),
+                            subtitle: log.notes != null && log.notes!.isNotEmpty
+                                ? Text(log.notes!)
+                                : null,
+                            trailing: Icon(
+                              log.isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color: log.isCompleted
+                                  ? Colors.green
+                                  : theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            onTap: () => _toggleHabitForDay(habit.id, selectedDay),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<HabitLog> _getEventsForDay(DateTime day) {
+    return _getLogsForDay(day);
+  }
+
+  List<HabitLog> _getLogsForDay(DateTime day) {
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+    
+    List<HabitLog> dayLogs = [];
+    
+    if (_selectedHabitId != null) {
+      // Show only selected habit
+      final logs = _habitLogs[_selectedHabitId] ?? [];
+      dayLogs.addAll(logs.where((log) =>
+          log.date.isAfter(dayStart.subtract(const Duration(microseconds: 1))) &&
+          log.date.isBefore(dayEnd)));
+    } else {
+      // Show all habits
+      for (final logs in _habitLogs.values) {
+        dayLogs.addAll(logs.where((log) =>
+            log.date.isAfter(dayStart.subtract(const Duration(microseconds: 1))) &&
+            log.date.isBefore(dayEnd)));
+      }
+    }
+    
+    return dayLogs;
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    if (!isSameDay(_selectedDay.value, selectedDay)) {
+      setState(() {
+        _selectedDay.value = selectedDay;
+        _focusedDay.value = focusedDay;
+      });
+    }
+  }
+
+  Future<void> _toggleHabitForDay(String habitId, DateTime day) async {
+    final habitProvider = Provider.of<HabitProvider>(context, listen: false);
+    await habitProvider.toggleHabitCompletion(habitId, day);
+    await _loadHabitLogs(); // Refresh logs
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Habit updated!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+}
+
