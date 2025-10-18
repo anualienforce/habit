@@ -2,12 +2,10 @@
 name: Interactive iOS Simulator Session
 
 # This makes the workflow manually triggerable.
-# It will NOT run automatically on every push.
 on:
   workflow_dispatch:
 
 jobs:
-  # The name of our single job.
   start-interactive-session:
 
     # We must use a macOS runner for Xcode and the iOS Simulator.
@@ -25,7 +23,13 @@ jobs:
         with:
           channel: 'stable'
 
-      # Step 3: Set up and start the VNC server.
+      # --- NEW STEP ADDED HERE ---
+      # Step 3: Install tmate using Homebrew.
+      # We do this to ensure tmate is available, even if it's not in the default runner image.
+      - name: Install tmate
+        run: brew install tmate
+
+      # Step 4: Set up and start the VNC server.
       # This is the core part that enables remote desktop.
       - name: Start VNC Server and Establish Tunnel
         run: |
@@ -33,15 +37,12 @@ jobs:
           # This command starts it.
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all
 
-          # We need to set a password to log in. We'll use a simple one here.
-          # IMPORTANT: Anyone who finds your connection URL could try to guess this.
-          VNC_PASSWORD='123456'
+          # We need to set a password to log in.
+          VNC_PASSWORD='123456' # You can change this password
           echo "VNC Password is: $VNC_PASSWORD"
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -users $(whoami) -access -on -privs -all -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNC_PASSWORD"
           
           # Now, we create a tunnel so you can connect from the internet.
-          # We use a tool called 'tmate' which is pre-installed on GitHub runners.
-          # It creates a secure SSH connection and prints the connection details.
           echo "Starting tmate tunnel..."
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
@@ -52,10 +53,8 @@ jobs:
           tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
           echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
-      # Step 4: Keep the job alive.
+      # Step 5: Keep the job alive.
       # A GitHub Actions job normally ends when the last command finishes.
-      # This 'sleep' command keeps it running for almost 6 hours so you have time to connect and test.
-      # The job will automatically stop if you cancel it or after the time limit.
       - name: Keep Session Alive
         run: |
           echo "Session is active. Connect using the SSH details from the previous step."
