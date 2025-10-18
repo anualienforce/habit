@@ -29,30 +29,31 @@ jobs:
       - name: Install tmate
         run: brew install tmate
 
-      # Step 4: Set up and start the VNC server.
-      # This is the core part that enables remote desktop.
+      # Step 4: Start VNC and get connection details
       - name: Start VNC Server and Establish Tunnel
         run: |
-          # The macOS runner has Screen Sharing (a VNC server) built-in, but it's turned off.
-          # This command starts it.
+          # Start and configure the VNC server (same as before)
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all
-
-          # We need to set a password to log in.
-          VNC_PASSWORD='123456' # You can change this password
+          VNC_PASSWORD='123456'
           echo "VNC Password is: $VNC_PASSWORD"
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -users $(whoami) -access -on -privs -all -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNC_PASSWORD"
           
-          # Now, we create a tunnel so you can connect from the internet.
+          # Start tmate (same as before)
           echo "Starting tmate tunnel..."
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
 
-          # This command will print the public SSH connection string to the logs.
-          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-          echo "!!! Your VNC connection details will be in the SSH session. !!!"
+          # --- THIS IS THE UPDATED PART ---
+          # Print BOTH the SSH and Web Shell connection strings
+          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          echo "!!!               CONNECT USING ONE OF THESE                !!!"
+          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+          echo "!!! To connect via SSH (if it works):                       !!!"
           tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
-          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
+          echo "!!!                                                         !!!"
+          echo "!!! To connect via your Web Browser (more reliable):        !!!"
+          tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+          echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
       # Step 5: Keep the job alive.
       # A GitHub Actions job normally ends when the last command finishes.
       - name: Keep Session Alive
