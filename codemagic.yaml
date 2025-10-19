@@ -2,6 +2,8 @@ workflows:
   ios-simulator-workflow:
     name: iOS Simulator Build
     instance_type: mac_mini_m1
+    environment:
+      flutter: stable
     scripts:
       - name: Get Flutter packages
         script: |
