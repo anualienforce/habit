@@ -1,0 +1,13 @@
+workflows:
+  ios-simulator-workflow:
+    name: iOS Simulator Build
+    instance_type: mac_mini_m1
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Build Flutter iOS for simulator
+        script: |
+          flutter build ios --simulator --architecture=x86_64 --no-codesign
+    artifacts:
+      - build/ios/iphonesimulator/*.app

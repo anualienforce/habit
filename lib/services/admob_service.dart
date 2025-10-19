@@ -30,17 +30,17 @@ class AdMobService {
 
   // Get banner ad unit ID (Android only)
   String get bannerAdUnitId {
-    // if (!Platform.isAndroid) {
-    //   throw UnsupportedError('Ads are only supported on Android');
-    // }
+    if (!Platform.isAndroid) {
+      throw UnsupportedError('Ads are only supported on Android');
+    }
     return _bannerAdUnitId;
   }
 
   // Get interstitial ad unit ID (Android only)
   String get interstitialAdUnitId {
-    // if (!Platform.isAndroid) {
-    //   throw UnsupportedError('Ads are only supported on Android');
-    // }
+    if (!Platform.isAndroid) {
+      throw UnsupportedError('Ads are only supported on Android');
+    }
     return _interstitialAdUnitId;
   }
 
@@ -52,9 +52,9 @@ class AdMobService {
       return null;
     }
 
-    // if (!Platform.isAndroid) {
-    //   throw UnsupportedError('Ads are only supported on Android');
-    // }
+    if (!Platform.isAndroid) {
+      throw UnsupportedError('Ads are only supported on Android');
+    }
 
     _bannerAd = BannerAd(
       adUnitId: bannerAdUnitId,
@@ -91,10 +91,10 @@ class AdMobService {
       return;
     }
 
-    // if (!Platform.isAndroid) {
-    //   print('Ads are only supported on Android');
-    //   return;
-    // }
+    if (!Platform.isAndroid) {
+      print('Ads are only supported on Android');
+      return;
+    }
 
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,
