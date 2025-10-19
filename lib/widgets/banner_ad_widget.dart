@@ -30,9 +30,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   void _loadBannerAd() {
     // Only load ads on Android
-    if (!Platform.isAndroid) {
-      return;
-    }
 
     try {
       _bannerAd = AdMobService().createBannerAd();

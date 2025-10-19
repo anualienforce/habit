@@ -14,9 +14,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize AdMob only on Android
-  if (Platform.isAndroid) {
     await AdMobService.initialize();
-  }
+
   
   // Initialize and request permissions for notifications
   final notificationService = NotificationService();
@@ -93,9 +92,8 @@ class _AppInitializerState extends State<AppInitializer> {
     });
     
     // Load the first interstitial ad (Android only)
-    if (Platform.isAndroid) {
       AdMobService().loadInterstitialAd();
-    }
+
   }
 
   void _onPermissionsGranted() {
