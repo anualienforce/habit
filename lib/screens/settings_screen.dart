@@ -155,53 +155,55 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
           
           // Premium Section
-          Text(
-            'Premium',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Column(
-              children: [
-                FutureBuilder<bool>(
-                  future: PurchaseService().checkPremiumStatus(),
-                  builder: (context, snapshot) {
-                    final isPremium = snapshot.data ?? false;
 
-                    if (isPremium) {
-                      return ListTile(
-                        leading: const Icon(Icons.star, color: Colors.amber),
-                        title: const Text('Premium Active'),
-                        subtitle: const Text('Thank you for your support! 🎉'),
-                        trailing: const Icon(Icons.check_circle, color: Colors.green),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PremiumUpgradeScreen(),
-                          ),
-                        ),
-                      );
-                    } else {
-                      return ListTile(
-                        leading: const Icon(Icons.star_border),
-                        title: const Text('Upgrade to Premium'),
-                        subtitle: const Text('Remove ads and unlock premium features'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PremiumUpgradeScreen(),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
+
+          // Text(
+          //   'Premium',
+          //   style: theme.textTheme.titleLarge?.copyWith(
+          //     fontWeight: FontWeight.bold,
+          //   ),
+          // ),
+          // const SizedBox(height: 8),
+          // Card(
+          //   child: Column(
+          //     children: [
+          //       FutureBuilder<bool>(
+          //         future: PurchaseService().checkPremiumStatus(),
+          //         builder: (context, snapshot) {
+          //           final isPremium = snapshot.data ?? false;
+          //
+          //           if (isPremium) {
+          //             return ListTile(
+          //               leading: const Icon(Icons.star, color: Colors.amber),
+          //               title: const Text('Premium Active'),
+          //               subtitle: const Text('Thank you for your support! 🎉'),
+          //               trailing: const Icon(Icons.check_circle, color: Colors.green),
+          //               onTap: () => Navigator.push(
+          //                 context,
+          //                 MaterialPageRoute(
+          //                   builder: (context) => const PremiumUpgradeScreen(),
+          //                 ),
+          //               ),
+          //             );
+          //           } else {
+          //             return ListTile(
+          //               leading: const Icon(Icons.star_border),
+          //               title: const Text('Upgrade to Premium'),
+          //               subtitle: const Text('Remove ads and unlock premium features'),
+          //               trailing: const Icon(Icons.chevron_right),
+          //               onTap: () => Navigator.push(
+          //                 context,
+          //                 MaterialPageRoute(
+          //                   builder: (context) => const PremiumUpgradeScreen(),
+          //                 ),
+          //               ),
+          //             );
+          //           }
+          //         },
+          //       ),
+          //     ],
+          //   ),
+          // ),
           
           const SizedBox(height: 24),
           
