@@ -8,8 +8,8 @@ class AdMobService {
   AdMobService._internal();
 
   // Test Ad Unit IDs for Android - Replace with your actual ad unit IDs in production
-  static const String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+  static const String _bannerAdUnitId = 'ca-app-pub-5876607751934203/3751654734';
+  static const String _interstitialAdUnitId = 'ca-app-pub-5876607751934203/2358682018';
 
   // Ad instances
   BannerAd? _bannerAd;

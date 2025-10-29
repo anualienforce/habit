@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  #launcher Icons
+  flutter_launcher_icons: ^0.14.4
+
   # UI and Navigation
   cupertino_icons: ^1.0.8
   material_design_icons_flutter: ^7.0.7296
@@ -65,6 +68,12 @@ dependencies:
   uuid: ^4.4.0
   collection: ^1.18.0
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -75,6 +84,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
