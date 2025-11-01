@@ -391,17 +391,22 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
+    showDialog(
       context: context,
-      applicationName: 'Habit Tracker',
-      applicationVersion: '1.0.0',
-      applicationIcon: const Icon(Icons.today, size: 48),
-      children: [
-        const Text(
-          'A comprehensive habit tracking app built with Flutter. '
-          'Track your daily habits, view your progress, and build consistency in your life.',
-        ),
-      ],
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: const Icon(Icons.info_outline),
+          title: Text('Habit Tracker'),
+          content: Text('A comprehensive habit tracking app built with Flutter. Track '
+              'your daily habits, view your progress, and build consistency in your life.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+    },
     );
   }
 

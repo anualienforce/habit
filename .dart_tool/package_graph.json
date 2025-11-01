@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "habittracker",
-      "version": "1.0.0+1",
+      "version": "1.0.1+2",
       "dependencies": [
         "awesome_notifications",
         "collection",
