@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,9 +9,10 @@ class PurchaseService {
   factory PurchaseService() => _instance;
   PurchaseService._internal();
 
-  // Subscription IDs - These must match your Google Play Console setup
-  static const String monthlySubscriptionId = 'premium_monthly_subscription';
-  static const String yearlySubscriptionId = 'premium_yearly_subscription';
+  // Remove Ads plans - update to your real App Store product IDs
+  static const String monthlySubscriptionId = 'remove_ads_monthly_ios';   // $3
+  static const String yearlySubscriptionId = 'remove_ads_yearly_ios';     // $19
+  static const String removeAdsLifetimeId = 'remove_ads_lifetime_ios';    // $49
   static const String _premiumKey = 'is_premium_user';
   static const String _subscriptionEndDateKey = 'subscription_end_date';
   static const String _subscriptionTypeKey = 'subscription_type';
@@ -35,6 +37,9 @@ class PurchaseService {
 
   ProductDetails? get yearlySubscription =>
       _products.where((p) => p.id == yearlySubscriptionId).firstOrNull;
+
+  ProductDetails? get removeAdsProduct =>
+      _products.where((p) => p.id == removeAdsLifetimeId).firstOrNull;
 
   /// Initialize the purchase service
   Future<void> initialize() async {
@@ -81,7 +86,11 @@ class PurchaseService {
   /// Load available products from the store
   Future<void> _loadProducts() async {
     try {
-      final Set<String> productIds = {monthlySubscriptionId, yearlySubscriptionId};
+      final Set<String> productIds = {
+        monthlySubscriptionId,
+        yearlySubscriptionId,
+        if (Platform.isIOS) removeAdsLifetimeId,
+      };
       final ProductDetailsResponse response =
           await _inAppPurchase.queryProductDetails(productIds);
 
@@ -152,6 +161,11 @@ class PurchaseService {
       await _setSubscriptionType('yearly');
       await _setSubscriptionEndDate(DateTime.now().add(const Duration(days: 365)));
       print('🎉 User subscribed to yearly premium!');
+    } else if (purchaseDetails.productID == removeAdsLifetimeId) {
+      await _setPremiumStatus(true);
+      await _setSubscriptionType('lifetime_remove_ads');
+      await _clearSubscriptionEndDate();
+      print('🎉 User purchased lifetime remove-ads!');
     }
   }
 
@@ -199,6 +213,45 @@ class PurchaseService {
   /// Purchase monthly subscription (backward compatibility)
   Future<bool> purchasePremium() async {
     return purchaseSubscription(isYearly: false);
+  }
+
+  /// Purchase lifetime remove-ads (iOS only)
+  Future<bool> purchaseRemoveAds() async {
+    try {
+      if (!Platform.isIOS) {
+        print('❌ Remove Ads purchase is only available on iOS.');
+        return false;
+      }
+
+      if (!_isAvailable) {
+        print('❌ In-App Purchase not available');
+        return false;
+      }
+
+      final product = removeAdsProduct;
+      if (product == null) {
+        print('❌ Remove Ads product not found. Check App Store product ID.');
+        return false;
+      }
+
+      print('🛒 Initiating lifetime remove-ads purchase...');
+
+      final PurchaseParam purchaseParam = PurchaseParam(
+        productDetails: product,
+        applicationUserName: null,
+      );
+
+      final bool success = await _inAppPurchase.buyNonConsumable(
+        purchaseParam: purchaseParam,
+      );
+
+      print('🛒 Remove Ads purchase request sent: $success');
+      return success;
+
+    } catch (e) {
+      print('❌ Error purchasing remove-ads: $e');
+      return false;
+    }
   }
 
   /// Restore previous purchases
@@ -258,6 +311,17 @@ class PurchaseService {
     }
   }
 
+  /// Clear subscription end date (for lifetime purchases)
+  Future<void> _clearSubscriptionEndDate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_subscriptionEndDateKey);
+      print('📅 Subscription end date cleared for lifetime purchase');
+    } catch (e) {
+      print('❌ Error clearing subscription end date: $e');
+    }
+  }
+
   /// Set subscription type (monthly/yearly)
   Future<void> _setSubscriptionType(String type) async {
     try {
@@ -272,18 +336,24 @@ class PurchaseService {
   /// Get monthly subscription price
   String getMonthlyPrice() {
     final subscription = monthlySubscription;
-    return subscription?.price ?? r'$1.99/month';
+    return subscription?.price ?? r'$3.00/month';
   }
 
   /// Get yearly subscription price
   String getYearlyPrice() {
     final subscription = yearlySubscription;
-    return subscription?.price ?? r'$19/year';
+    return subscription?.price ?? r'$19.00/year';
   }
 
   /// Get subscription price (defaults to monthly for backward compatibility)
   String getPremiumPrice() {
     return getMonthlyPrice();
+  }
+
+  /// Get remove-ads one-time price (iOS)
+  String getRemoveAdsLifetimePrice() {
+    final product = removeAdsProduct;
+    return product?.price ?? r'$49.00 lifetime';
   }
 
   /// Get subscription title
@@ -324,6 +394,7 @@ class PurchaseService {
       'productsLoaded': _products.length,
       'monthlySubscriptionFound': monthlySubscription != null,
       'yearlySubscriptionFound': yearlySubscription != null,
+      'removeAdsFound': removeAdsProduct != null,
       'premiumPrice': getPremiumPrice(),
     };
   }

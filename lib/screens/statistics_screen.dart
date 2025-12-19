@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/category.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/stats_card.dart';
+import '../utils/theme_tokens.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -19,143 +20,166 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Statistics'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (value) {
-              setState(() {
-                _selectedHabitId = value == 'all' ? null : value;
-              });
-            },
-            itemBuilder: (context) {
-              final habitProvider = Provider.of<HabitProvider>(context, listen: false);
-              final habits = habitProvider.habits;
-              
-              return [
-                const PopupMenuItem(
-                  value: 'all',
-                  child: Text('All Habits'),
-                ),
-                ...habits.map((habit) => PopupMenuItem(
-                  value: habit.id,
-                  child: Text(habit.name),
-                )),
-              ];
-            },
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppGradients.background(theme.brightness),
           ),
-        ],
-      ),
-      body: Consumer<HabitProvider>(
-        builder: (context, habitProvider, child) {
-          if (habitProvider.habits.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.bar_chart_outlined,
-                    size: 64,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Statistics Yet',
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create some habits to see your progress!',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+        ),
+        child: SafeArea(
+          child: Consumer<HabitProvider>(
+            builder: (context, habitProvider, child) {
+              if (habitProvider.habits.isEmpty) {
+                return _EmptyState(
+                  title: 'No Statistics Yet',
+                  subtitle: 'Create some habits to see your progress!',
+                  isDark: isDark,
+                );
+              }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Period Selection
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Row(
                       children: [
-                        Text(
-                          'Time Period',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        _GlassPill(
+                          child: Text(
+                            'Statistics',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF0E1D2F),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        SegmentedButton<int>(
-                          segments: const [
-                            ButtonSegment(value: 7, label: Text('7 Days')),
-                            ButtonSegment(value: 30, label: Text('30 Days')),
-                            ButtonSegment(value: 90, label: Text('90 Days')),
-                          ],
-                          selected: {_selectedPeriod},
-                          onSelectionChanged: (Set<int> selection) {
-                            setState(() {
-                              _selectedPeriod = selection.first;
-                            });
-                          },
+                        const Spacer(),
+                        _GlassCircleIcon(
+                          icon: Icons.filter_list,
+                          onTap: () => _showFilterMenu(context),
+                          isDark: isDark,
                         ),
                       ],
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Overall Statistics
-                if (_selectedHabitId == null) ...[
-                  Text(
-                    'Overall Statistics',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Time Period',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SegmentedButton<int>(
+                                    segments: const [
+                                      ButtonSegment(value: 7, label: Text('7 Days')),
+                                      ButtonSegment(value: 30, label: Text('30 Days')),
+                                      ButtonSegment(value: 90, label: Text('90 Days')),
+                                    ],
+                                    selected: {_selectedPeriod},
+                                    onSelectionChanged: (Set<int> selection) {
+                                      setState(() {
+                                        _selectedPeriod = selection.first;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_selectedHabitId == null) ...[
+                            Text(
+                              'Overall Statistics',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildOverallStats(habitProvider),
+                            const SizedBox(height: 24),
+                          ],
+                          if (_selectedHabitId != null) ...[
+                            Text(
+                              'Habit Statistics',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildHabitStats(habitProvider, _selectedHabitId!),
+                          ] else ...[
+                            Text(
+                              'Habits Overview',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildHabitsOverview(habitProvider),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildOverallStats(habitProvider),
-                  const SizedBox(height: 24),
                 ],
-                
-                // Individual Habit Statistics
-                if (_selectedHabitId != null) ...[
-                  Text(
-                    'Habit Statistics',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildHabitStats(habitProvider, _selectedHabitId!),
-                ] else ...[
-                  Text(
-                    'Habits Overview',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildHabitsOverview(habitProvider),
-                ],
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
+  }
+
+  void _showFilterMenu(BuildContext context) async {
+    final habitProvider = Provider.of<HabitProvider>(context, listen: false);
+    final habits = habitProvider.habits;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromLTRB(
+      overlay.size.width - 140,
+      kToolbarHeight + 20,
+      16,
+      0,
+    );
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        const PopupMenuItem(value: 'all', child: Text('All Habits')),
+        ...habits.map(
+          (habit) => PopupMenuItem(
+            value: habit.id,
+            child: Text(habit.name),
+          ),
+        ),
+      ],
+    );
+
+    if (selected != null) {
+      setState(() {
+        _selectedHabitId = selected == 'all' ? null : selected;
+      });
+    }
   }
 
   Widget _buildOverallStats(HabitProvider habitProvider) {
@@ -170,6 +194,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         }
         
         final stats = snapshot.data!;
+        final avgCompletion = (stats['avgCompletion'] ?? 0) as num;
+        final bestStreak = (stats['bestStreak'] ?? 0) as num;
+        final totalCompletions = (stats['totalCompletions'] ?? 0) as num;
+        final chartData = stats['chartData'] as List<FlSpot>? ?? const <FlSpot>[];
         
         return Column(
           children: [
@@ -187,7 +215,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: 'Avg Completion',
-                    value: '${(stats['avgCompletion'] * 100).toStringAsFixed(0)}%',
+                    value: '${(avgCompletion * 100).toStringAsFixed(0)}%',
                     icon: Icons.trending_up,
                     color: Colors.green,
                   ),
@@ -200,7 +228,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: 'Best Streak',
-                    value: '${stats['bestStreak']} days',
+                    value: '${bestStreak} days',
                     icon: Icons.local_fire_department,
                     color: Colors.orange,
                   ),
@@ -209,7 +237,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: 'Total Completions',
-                    value: stats['totalCompletions'].toString(),
+                    value: totalCompletions.toString(),
                     icon: Icons.check_circle,
                     color: Colors.purple,
                   ),
@@ -217,7 +245,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildCompletionChart(stats['chartData']),
+            _buildCompletionChart(chartData),
           ],
         );
       },
@@ -235,6 +263,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         final stats = snapshot.data!;
         final habit = habitProvider.habits.firstWhere((h) => h.id == habitId);
         final category = habitProvider.getCategoryById(habit.categoryId);
+        final currentStreak = (stats['currentStreak'] ?? 0) as num;
+        final totalCompletions = (stats['totalCompletions'] ?? 0) as num;
+        final rate30 = (stats['completionRate30Days'] ?? 0) as num;
+        final rate7 = (stats['completionRate7Days'] ?? 0) as num;
         
         return Column(
           children: [
@@ -269,7 +301,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: 'Current Streak',
-                    value: '${stats['currentStreak']} days',
+                    value: '${currentStreak.toInt()} days',
                     icon: Icons.local_fire_department,
                     color: Colors.orange,
                   ),
@@ -278,7 +310,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: 'Total Done',
-                    value: stats['totalCompletions'].toString(),
+                    value: totalCompletions.toString(),
                     icon: Icons.check_circle,
                     color: Colors.green,
                   ),
@@ -291,7 +323,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: '30-Day Rate',
-                    value: '${(stats['completionRate30Days'] * 100).toStringAsFixed(0)}%',
+                    value: '${(rate30 * 100).toStringAsFixed(0)}%',
                     icon: Icons.trending_up,
                     color: Colors.blue,
                   ),
@@ -300,7 +332,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   child: StatsCard(
                     title: '7-Day Rate',
-                    value: '${(stats['completionRate7Days'] * 100).toStringAsFixed(0)}%',
+                    value: '${(rate7 * 100).toStringAsFixed(0)}%',
                     icon: Icons.show_chart,
                     color: Colors.purple,
                   ),
@@ -421,9 +453,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     for (int i = 0; i < habits.length; i++) {
       final habit = habits[i];
       final stats = await habitProvider.getHabitStats(habit.id);
-      totalCompletions += stats['totalCompletions'] as int;
-      bestStreak = [bestStreak, stats['currentStreak'] as int].reduce((a, b) => a > b ? a : b);
-      totalCompletionRate += stats['completionRate30Days'] as double;
+      final habitTotal = (stats['totalCompletions'] ?? 0) as num;
+      final habitStreak = (stats['currentStreak'] ?? 0) as num;
+      final habitRate = (stats['completionRate30Days'] ?? 0) as num;
+      totalCompletions += habitTotal.toInt();
+      bestStreak = [bestStreak, habitStreak.toInt()].reduce((a, b) => a > b ? a : b);
+      totalCompletionRate += habitRate.toDouble();
     }
 
     // Generate chart data (simplified - showing last 7 days)
@@ -439,6 +474,105 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       'avgCompletion': habits.isNotEmpty ? totalCompletionRate / habits.length : 0.0,
       'chartData': chartData,
     };
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool isDark;
+
+  const _EmptyState({
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = isDark ? Colors.white : const Color(0xFF0E1D2F);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bar_chart_outlined, size: 64, color: textColor.withOpacity(0.7)),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: textColor.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassPill extends StatelessWidget {
+  final Widget child;
+
+  const _GlassPill({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _GlassCircleIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _GlassCircleIcon({
+    required this.icon,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? Colors.white.withOpacity(0.14) : Colors.white,
+          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.25 : 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.35 : 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: isDark ? Colors.white : const Color(0xFF0E1D2F),
+        ),
+      ),
+    );
   }
 }
 

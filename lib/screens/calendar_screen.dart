@@ -6,6 +6,7 @@ import '../models/category.dart';
 import '../models/habit.dart';
 import '../providers/habit_provider.dart';
 import '../models/habit_log.dart';
+import '../utils/theme_tokens.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -63,236 +64,227 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calendar'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (value) {
-              setState(() {
-                _selectedHabitId = value == 'all' ? null : value;
-              });
-            },
-            itemBuilder: (context) {
-              final habitProvider = Provider.of<HabitProvider>(context, listen: false);
-              final habits = habitProvider.habits;
-              
-              return [
-                const PopupMenuItem(
-                  value: 'all',
-                  child: Text('All Habits'),
-                ),
-                ...habits.map((habit) => PopupMenuItem(
-                  value: habit.id,
-                  child: Text(habit.name),
-                )),
-              ];
-            },
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppGradients.background(theme.brightness),
           ),
-        ],
-      ),
-      body: Consumer<HabitProvider>(
-        builder: (context, habitProvider, child) {
-          // Reload logs whenever habits change
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _loadHabitLogs();
-          });
-          
-          return Column(
-            children: [
-              // Calendar
-              Card(
-                margin: const EdgeInsets.all(16),
-                child: TableCalendar<HabitLog>(
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  focusedDay: _focusedDay.value,
-                  calendarFormat: _calendarFormat,
-                  eventLoader: _getEventsForDay,
-                  startingDayOfWeek: StartingDayOfWeek.monday,
-                  calendarStyle: CalendarStyle(
-                    outsideDaysVisible: false,
-                    weekendTextStyle: TextStyle(
-                      color: theme.colorScheme.primary,
-                    ),
-                    holidayTextStyle: TextStyle(
-                      color: theme.colorScheme.primary,
-                    ),
-                    markerDecoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    // Customize markers to show different colors for completed vs pending
-                    markersMaxCount: 3,
-                    canMarkersOverflow: true,
-                  ),
-                  calendarBuilders: CalendarBuilders<HabitLog>(
-                    markerBuilder: (context, day, events) {
-                      if (events.isEmpty) return null;
-                      
-                      // Count completed and pending habits
-                      int completed = events.where((e) => e.isCompleted).length;
-                      int pending = events.where((e) => !e.isCompleted).length;
-                      
-                      List<Widget> markers = [];
-                      
-                      // Add completed marker
-                      if (completed > 0) {
-                        markers.add(
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
+        ),
+        child: SafeArea(
+          child: Consumer<HabitProvider>(
+            builder: (context, habitProvider, child) {
+              // Reload logs whenever habits change
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _loadHabitLogs();
+              });
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        _GlassPill(
+                          child: Text(
+                            'Calendar',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF0E1D2F),
                             ),
-                            child: completed > 1 ? Center(
-                              child: Text(
-                                completed.toString(),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 6,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ) : null,
                           ),
-                        );
-                      }
-                      
-                      // Add pending marker
-                      if (pending > 0) {
-                        markers.add(
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: pending > 1 ? Center(
-                              child: Text(
-                                pending.toString(),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 6,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ) : null,
-                          ),
-                        );
-                      }
-                      
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: markers,
-                      );
-                    },
-                  ),
-                  onDaySelected: _onDaySelected,
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-                  onPageChanged: (focusedDay) {
-                    _focusedDay.value = focusedDay;
-                  },
-                  selectedDayPredicate: (day) {
-                    return isSameDay(_selectedDay.value, day);
-                  },
-                ),
-              ),
-              
-              // Selected day habits
-              Expanded(
-                child: ValueListenableBuilder<DateTime>(
-                  valueListenable: _selectedDay,
-                  builder: (context, selectedDay, _) {
-                    final dayLogs = _getLogsForDay(selectedDay);
-                    
-                    if (dayLogs.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 64,
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No habits for ${DateFormat('MMM d, y').format(selectedDay)}',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Select a day with habits to see the details',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                          ],
                         ),
-                      );
-                    }
-                    
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: dayLogs.length,
-                      itemBuilder: (context, index) {
-                        final log = dayLogs[index];
-                        final habit = habitProvider.habits
-                            .firstWhere((h) => h.id == log.habitId);
-                        final category = habitProvider.getCategoryById(habit.categoryId);
-                        
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: category?.color.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                        const Spacer(),
+                        _GlassCircleIcon(
+                          icon: Icons.filter_list,
+                          onTap: () => _showFilterMenu(context, habitProvider),
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: TableCalendar<HabitLog>(
+                      firstDay: DateTime.utc(2020, 1, 1),
+                      lastDay: DateTime.utc(2030, 12, 31),
+                      focusedDay: _focusedDay.value,
+                      calendarFormat: _calendarFormat,
+                      eventLoader: _getEventsForDay,
+                      startingDayOfWeek: StartingDayOfWeek.monday,
+                      calendarStyle: CalendarStyle(
+                        outsideDaysVisible: false,
+                        weekendTextStyle: TextStyle(
+                          color: theme.colorScheme.primary,
+                        ),
+                        holidayTextStyle: TextStyle(
+                          color: theme.colorScheme.primary,
+                        ),
+                        markerDecoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        markersMaxCount: 3,
+                        canMarkersOverflow: true,
+                      ),
+                      calendarBuilders: CalendarBuilders<HabitLog>(
+                        markerBuilder: (context, day, events) {
+                          if (events.isEmpty) return null;
+
+                          final completed = events.where((e) => e.isCompleted).length;
+                          final pending = events.where((e) => !e.isCompleted).length;
+
+                          final markers = <Widget>[];
+                          if (completed > 0) {
+                            markers.add(
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: completed > 1
+                                    ? Center(
+                                        child: Text(
+                                          completed.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 6,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                               ),
-                              child: Icon(
-                                (category != null)
-                                    ? (kCategoryIconConstants[category.id] ??
-                                    kCategoryIconConstants[category.id] ?? Icons.task_alt)
-                                    : Icons.task_alt,
-                                color: category?.color ?? theme.colorScheme.primary,
+                            );
+                          }
+
+                          if (pending > 0) {
+                            markers.add(
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.6),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: pending > 1
+                                    ? Center(
+                                        child: Text(
+                                          pending.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 6,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                               ),
-                            ),
-                            title: Text(habit.name),
-                            subtitle: log.notes != null && log.notes!.isNotEmpty
-                                ? Text(log.notes!)
-                                : null,
-                            trailing: Icon(
-                              log.isCompleted
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              color: log.isCompleted
-                                  ? Colors.green
-                                  : theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                            onTap: () => _toggleHabitForDay(habit.id, selectedDay),
-                          ),
+                            );
+                          }
+
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: markers,
+                          );
+                        },
+                      ),
+                      onDaySelected: _onDaySelected,
+                      onFormatChanged: (format) {
+                        setState(() {
+                          _calendarFormat = format;
+                        });
+                      },
+                      onPageChanged: (focusedDay) {
+                        _focusedDay.value = focusedDay;
+                      },
+                      selectedDayPredicate: (day) {
+                        return isSameDay(_selectedDay.value, day);
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: ValueListenableBuilder<DateTime>(
+                      valueListenable: _selectedDay,
+                      builder: (context, selectedDay, _) {
+                        final dayLogs = _getLogsForDay(selectedDay);
+
+                        if (dayLogs.isEmpty) {
+                          return _EmptyState(
+                            message:
+                                'No habits for ${DateFormat('MMM d, y').format(selectedDay)}',
+                            sub: 'Select a day with habits to see the details',
+                            isDark: isDark,
+                          );
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: dayLogs.length,
+                          itemBuilder: (context, index) {
+                            final log = dayLogs[index];
+                            final habit = habitProvider.habits
+                                .firstWhere((h) => h.id == log.habitId);
+                            final category =
+                                habitProvider.getCategoryById(habit.categoryId);
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: category?.color.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    (category != null)
+                                        ? (kCategoryIconConstants[category.id] ??
+                                            kCategoryIconConstants[category.id] ??
+                                            Icons.task_alt)
+                                        : Icons.task_alt,
+                                    color:
+                                        category?.color ?? theme.colorScheme.primary,
+                                  ),
+                                ),
+                                title: Text(habit.name),
+                                subtitle: log.notes != null && log.notes!.isNotEmpty
+                                    ? Text(log.notes!)
+                                    : null,
+                                trailing: Icon(
+                                  log.isCompleted
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  color: log.isCompleted
+                                      ? Colors.green
+                                      : theme.colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                                onTap: () => _toggleHabitForDay(habit.id, selectedDay),
+                              ),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -404,7 +396,139 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       );
     }
+    }
+
+  void _showFilterMenu(BuildContext context, HabitProvider habitProvider) async {
+    final habits = habitProvider.habits;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromLTRB(
+      overlay.size.width - 140,
+      kToolbarHeight + 20,
+      16,
+      0,
+    );
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        const PopupMenuItem(value: 'all', child: Text('All Habits')),
+        ...habits.map((habit) => PopupMenuItem(
+              value: habit.id,
+              child: Text(habit.name),
+            )),
+      ],
+    );
+
+    if (selected != null) {
+      setState(() {
+        _selectedHabitId = selected == 'all' ? null : selected;
+      });
+    }
+  }
+  }
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  final String sub;
+  final bool isDark;
+
+  const _EmptyState({
+    required this.message,
+    required this.sub,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = isDark ? Colors.white : const Color(0xFF0E1D2F);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 64,
+            color: textColor.withOpacity(0.7),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sub,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: textColor.withOpacity(0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }
 
+class _GlassPill extends StatelessWidget {
+  final Widget child;
 
+  const _GlassPill({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _GlassCircleIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _GlassCircleIcon({
+    required this.icon,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? Colors.white.withOpacity(0.14) : Colors.white,
+          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.25 : 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.35 : 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: isDark ? Colors.white : const Color(0xFF0E1D2F),
+        ),
+      ),
+    );
+  }
+}

@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,20 +11,11 @@ import 'services/admob_service.dart';
 import 'services/purchase_service.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/permission_screen.dart';
+import 'utils/theme_tokens.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize AdMob only on Android
-    await AdMobService.initialize();
 
-  
-  // Initialize and request permissions for notifications
-  final notificationService = NotificationService();
-  await notificationService.initialize();
-  bool hasPermission = await notificationService.requestPermissions();
-  debugPrint('Notification permission granted: $hasPermission');
-  
   runApp(const HabitTrackerApp());
 }
 
@@ -62,6 +55,7 @@ class AppInitializer extends StatefulWidget {
 class _AppInitializerState extends State<AppInitializer> {
   bool _showPermissionScreen = false;
   bool _isInitialized = false;
+  bool _servicesKickedOff = false;
 
   @override
   void initState() {
@@ -74,26 +68,67 @@ class _AppInitializerState extends State<AppInitializer> {
     final habitProvider = Provider.of<HabitProvider>(context, listen: false);
     final notificationService = NotificationService();
     final purchaseService = PurchaseService();
-    
-    await Future.wait([
-      themeProvider.initialize(),
-      habitProvider.initialize(),
-      notificationService.initialize(),
-      purchaseService.initialize(),
-    ]);
-    
-    // Check if permissions have been requested
-    final prefs = await SharedPreferences.getInstance();
-    final permissionsRequested = prefs.getBool('permissions_requested') ?? false;
-    
-    setState(() {
-      _showPermissionScreen = !permissionsRequested;
-      _isInitialized = true;
-    });
-    
-    // Load the first interstitial ad (Android only)
-      AdMobService().loadInterstitialAd();
 
+    // Kick off theme + data in background; avoid blocking first frame.
+    final themeFuture = themeProvider.initialize();
+    final habitFuture = habitProvider.initialize();
+
+    // Permissions check in background.
+    final permissionsFuture = _loadPermissionsFlag();
+
+    // Kick off non-blocking service init that can take longer (ads, notifications, purchases).
+    if (!_servicesKickedOff) {
+      _servicesKickedOff = true;
+      _initializeBackgroundServices(notificationService, purchaseService);
+    }
+
+    // Hold splash for 1s to show transition, then reveal UI.
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (mounted) {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+
+    // Best-effort; ignore failures so startup isn't blocked.
+    themeFuture.catchError((_) {});
+    habitFuture.catchError((_) {});
+    permissionsFuture.catchError((_) {});
+  }
+
+  Future<void> _loadPermissionsFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final permissionsRequested = prefs.getBool('permissions_requested') ?? false;
+      if (mounted) {
+        setState(() {
+          _showPermissionScreen = !permissionsRequested;
+        });
+      }
+    } catch (_) {
+      // If prefs fail, just proceed without blocking startup.
+    }
+  }
+
+  Future<void> _initializeBackgroundServices(
+    NotificationService notificationService,
+    PurchaseService purchaseService,
+  ) async {
+    // Skip heavy native services on web.
+    if (kIsWeb) return;
+
+    // Initialize notifications (needed before permission screen requests).
+    await notificationService.initialize();
+
+    // Initialize ads only on Android.
+    if (Platform.isAndroid) {
+      await AdMobService.initialize();
+      AdMobService().loadInterstitialAd();
+    }
+
+    // Purchases can be slower—do not block the first frame.
+    await purchaseService.initialize();
   }
 
   void _onPermissionsGranted() {
@@ -106,17 +141,18 @@ class _AppInitializerState extends State<AppInitializer> {
   Widget build(BuildContext context) {
     return Consumer<HabitProvider>(
       builder: (context, habitProvider, child) {
-        // Show loading screen while initializing
+        // If still initializing, render a gradient background so splash transitions smoothly.
         if (!_isInitialized || habitProvider.isLoading) {
-          return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading your habits...'),
-                ],
+          final brightness = MediaQuery.of(context).platformBrightness;
+          final bg = AppGradients.background(brightness);
+          return Scaffold(
+            body: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: bg,
+                ),
               ),
             ),
           );

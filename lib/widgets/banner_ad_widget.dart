@@ -29,25 +29,42 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   void _loadBannerAd() {
-    // Only load ads on Android
+    // Only load ads on Android and when not premium.
+    if (PurchaseService().isPremium || !Platform.isAndroid) return;
 
     try {
-      _bannerAd = AdMobService().createBannerAd();
-      _bannerAd!.load().then((_) {
-        if (mounted) {
-          setState(() {
-            _isAdLoaded = true;
-          });
-        }
-      });
+      final service = AdMobService();
+      _bannerAd = BannerAd(
+        adUnitId: service.bannerAdUnitId,
+        size: AdSize.banner,
+        request: const AdRequest(),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (!mounted) return;
+            setState(() {
+              _isAdLoaded = true;
+            });
+          },
+          onAdFailedToLoad: (ad, error) {
+            ad.dispose();
+            if (!mounted) return;
+            setState(() {
+              _isAdLoaded = false;
+              _bannerAd = null;
+            });
+          },
+        ),
+      );
+      _bannerAd!.load();
     } catch (e) {
-      print('Failed to load banner ad: $e');
+      // Swallow errors to avoid breaking layout.
     }
   }
 
   @override
   void dispose() {
     _bannerAd?.dispose();
+    _isAdLoaded = false;
     super.dispose();
   }
 
@@ -59,37 +76,20 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
 
     // Only show ads on Android
-    // if (!Platform.isAndroid) {
-    //   return const SizedBox.shrink();
-    // }
-
-    if (!_isAdLoaded || _bannerAd == null) {
+    if (!Platform.isAndroid) {
       return const SizedBox.shrink();
     }
 
-    if (!_isAdLoaded) {
-      return Container(
-        height: 50,
-        margin: widget.margin,
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+    if (!_isAdLoaded || _bannerAd == null) {
+      // Do not reserve space when no ad is loaded.
+      return const SizedBox.shrink();
     }
 
     return Container(
       height: _bannerAd!.size.height.toDouble(),
       margin: widget.margin,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.transparent,
       ),
       child: AdWidget(ad: _bannerAd!),
     );

@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import '../models/habit.dart';
 import '../models/reminder.dart';
@@ -69,7 +71,26 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions() async {
-    return AwesomeNotifications().requestPermissionToSendNotifications();
+    await initialize();
+
+    // Notification permission
+    bool notificationsGranted = await AwesomeNotifications().isNotificationAllowed();
+    if (!notificationsGranted) {
+      notificationsGranted =
+          await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+
+    // Exact alarm permission (Android 12+)
+    bool exactAlarmsGranted = true;
+    if (Platform.isAndroid) {
+      final status = await Permission.scheduleExactAlarm.status;
+      if (!status.isGranted) {
+        final result = await Permission.scheduleExactAlarm.request();
+        exactAlarmsGranted = result.isGranted;
+      }
+    }
+
+    return notificationsGranted && exactAlarmsGranted;
   }
 
   Future<void> scheduleHabitReminder(Habit habit) async {
@@ -371,11 +392,18 @@ class NotificationService {
 
   Future<Map<String, dynamic>> getNotificationStatus() async {
     await initialize();
-    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    final notificationsAllowed = await AwesomeNotifications().isNotificationAllowed();
     final pendingList = await getPendingNotifications();
-    
+
+    bool exactAlarmsAllowed = true;
+    if (Platform.isAndroid) {
+      final status = await Permission.scheduleExactAlarm.status;
+      exactAlarmsAllowed = status.isGranted;
+    }
+
     return {
-      'isAllowed': isAllowed,
+      'notifications': notificationsAllowed,
+      'exactAlarms': exactAlarmsAllowed,
       'pendingCount': pendingList.length,
       'isInitialized': _isInitialized,
     };
