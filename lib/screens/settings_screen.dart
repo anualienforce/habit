@@ -1007,12 +1007,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         break;
     }
 
+    String failureHint = 'Purchase failed to start. Please try again.';
+    if (!success) {
+      // Provide actionable hints: the most common cause is "product id not found"
+      // because App Store Connect products aren't created or IDs don't match.
+      final notFound = purchaseService.lastNotFoundProductIds;
+      final lastError = purchaseService.lastIapError?.message;
+      if (notFound.isNotEmpty) {
+        failureHint =
+            'Purchase couldn’t start: products not found in App Store (${notFound.join(", ")}). '
+            'Check App Store Connect IDs / sandbox setup.';
+      } else if (lastError != null && lastError.isNotEmpty) {
+        failureHint = 'Purchase couldn’t start: $lastError';
+      } else if (!purchaseService.isAvailable) {
+        failureHint =
+            'In-app purchases are not available on this device right now. Try again later.';
+      }
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
               ? 'Purchase initiated. Complete it in the App Store sheet.'
-              : 'Purchase failed to start. Please try again.',
+              : failureHint,
         ),
         backgroundColor: success ? Colors.blue : Colors.red,
         duration: const Duration(seconds: 3),

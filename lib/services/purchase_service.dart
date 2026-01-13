@@ -18,19 +18,26 @@ class PurchaseService {
   static const String _subscriptionTypeKey = 'subscription_type';
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
-  late StreamSubscription<List<PurchaseDetails>> _subscription;
+  StreamSubscription<List<PurchaseDetails>>? _subscription;
 
   // Available products
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
   bool _isPremium = false;
   bool _isInitialized = false;
+  bool _isInitializing = false;
+
+  // Debug/diagnostics info for UI + logs.
+  IAPError? _lastIapError;
+  List<String> _lastNotFoundProductIds = [];
 
   // Getters
   bool get isPremium => _isPremium;
   bool get isAvailable => _isAvailable;
   bool get isInitialized => _isInitialized;
   List<ProductDetails> get products => _products;
+  IAPError? get lastIapError => _lastIapError;
+  List<String> get lastNotFoundProductIds => List.unmodifiable(_lastNotFoundProductIds);
 
   ProductDetails? get monthlySubscription =>
       _products.where((p) => p.id == monthlySubscriptionId).firstOrNull;
@@ -43,9 +50,14 @@ class PurchaseService {
 
   /// Initialize the purchase service
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    // If we previously initialized successfully and have products, don't redo work.
+    // If initialization ran once but failed / had no products (common during early app startup),
+    // allow callers (like the paywall) to retry.
+    if (_isInitialized && _isAvailable && _products.isNotEmpty) return;
+    if (_isInitializing) return;
 
     try {
+      _isInitializing = true;
       print('🛒 Initializing Purchase Service...');
 
       // Check if in-app purchase is available
@@ -55,6 +67,7 @@ class PurchaseService {
       if (!_isAvailable) {
         print('❌ In-App Purchase not available on this device');
         _isInitialized = true;
+        _isInitializing = false;
         return;
       }
 
@@ -62,6 +75,7 @@ class PurchaseService {
       await _loadPremiumStatus();
 
       // Listen to purchase updates
+      await _subscription?.cancel();
       _subscription = _inAppPurchase.purchaseStream.listen(
         _onPurchaseUpdate,
         onDone: () => print('🛒 Purchase stream closed'),
@@ -75,17 +89,24 @@ class PurchaseService {
       await _restorePurchases();
 
       _isInitialized = true;
+      _isInitializing = false;
       print('✅ Purchase Service initialized successfully');
 
     } catch (e) {
       print('❌ Error initializing Purchase Service: $e');
-      _isInitialized = true; // Still mark as initialized to prevent retry loops
+      // Mark as initialized so the app doesn't get stuck retrying at startup,
+      // but allow explicit callers to retry since we keep products empty / unavailable.
+      _isInitialized = true;
+      _isInitializing = false;
     }
   }
 
   /// Load available products from the store
   Future<void> _loadProducts() async {
     try {
+      _lastIapError = null;
+      _lastNotFoundProductIds = [];
+
       final Set<String> productIds = {
         monthlySubscriptionId,
         yearlySubscriptionId,
@@ -95,12 +116,18 @@ class PurchaseService {
           await _inAppPurchase.queryProductDetails(productIds);
 
       if (response.error != null) {
+        _lastIapError = response.error;
         print('❌ Error loading products: ${response.error}');
         return;
       }
 
       _products = response.productDetails;
+      _lastNotFoundProductIds = response.notFoundIDs.toList();
       print('🛒 Loaded ${_products.length} products');
+
+      if (_lastNotFoundProductIds.isNotEmpty) {
+        print('⚠️ Product IDs not found in store: $_lastNotFoundProductIds');
+      }
 
       for (final product in _products) {
         print('   - ${product.id}: ${product.title} (${product.price})');
@@ -178,9 +205,17 @@ class PurchaseService {
   /// Purchase premium subscription (monthly or yearly)
   Future<bool> purchaseSubscription({required bool isYearly}) async {
     try {
+      if (!_isInitialized || !_isAvailable) {
+        await initialize();
+      }
       if (!_isAvailable) {
         print('❌ In-App Purchase not available');
         return false;
+      }
+
+      // If products weren't loaded (or were empty due to transient startup timing), retry once.
+      if (_products.isEmpty) {
+        await _loadProducts();
       }
 
       final subscription = isYearly ? yearlySubscription : monthlySubscription;
@@ -223,9 +258,16 @@ class PurchaseService {
         return false;
       }
 
+      if (!_isInitialized || !_isAvailable) {
+        await initialize();
+      }
       if (!_isAvailable) {
         print('❌ In-App Purchase not available');
         return false;
+      }
+
+      if (_products.isEmpty) {
+        await _loadProducts();
       }
 
       final product = removeAdsProduct;
@@ -382,19 +424,22 @@ class PurchaseService {
 
   /// Dispose of resources
   void dispose() {
-    _subscription.cancel();
+    _subscription?.cancel();
   }
 
   /// Get purchase status info for debugging
   Map<String, dynamic> getDebugInfo() {
     return {
       'isInitialized': _isInitialized,
+      'isInitializing': _isInitializing,
       'isAvailable': _isAvailable,
       'isPremium': _isPremium,
       'productsLoaded': _products.length,
       'monthlySubscriptionFound': monthlySubscription != null,
       'yearlySubscriptionFound': yearlySubscription != null,
       'removeAdsFound': removeAdsProduct != null,
+      'lastNotFoundProductIds': _lastNotFoundProductIds,
+      'lastIapError': _lastIapError?.message,
       'premiumPrice': getPremiumPrice(),
     };
   }
