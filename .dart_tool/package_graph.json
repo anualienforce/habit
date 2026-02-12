@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "habittracker",
-      "version": "1.0.2+3",
+      "version": "1.0.11+11",
       "dependencies": [
         "awesome_notifications",
         "collection",
@@ -239,7 +239,7 @@
     },
     {
       "name": "meta",
-      "version": "1.16.0",
+      "version": "1.17.0",
       "dependencies": []
     },
     {
@@ -291,7 +291,7 @@
     },
     {
       "name": "test_api",
-      "version": "0.7.6",
+      "version": "0.7.7",
       "dependencies": [
         "async",
         "boolean_selector",
@@ -323,7 +323,7 @@
     },
     {
       "name": "in_app_purchase_storekit",
-      "version": "0.4.6",
+      "version": "0.4.7",
       "dependencies": [
         "collection",
         "flutter",
@@ -341,7 +341,7 @@
     },
     {
       "name": "in_app_purchase_android",
-      "version": "0.4.0+6",
+      "version": "0.4.0+8",
       "dependencies": [
         "collection",
         "flutter",

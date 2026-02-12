@@ -1,0 +1,121 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "3D2DE511",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "49.99",
+      "familyShareable" : true,
+      "internalID" : "6756707965",
+      "localizations" : [
+        {
+          "description" : "With this plan you can use the app without any ads.",
+          "displayName" : "Lifetime No Ads Plan",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "remove_ads_lifetime_ios",
+      "referenceName" : "remove_ads_lifetime_ios",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6754628928",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "72D93FNGLJ",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 792569134.55612504,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21863190",
+      "localizations" : [
+
+      ],
+      "name" : "remove_ads_monthly_ios",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6756707806",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "With this plan you can use the app without any ads.",
+              "displayName" : "One Month No Ads Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "remove_ads_monthly_ios",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "remove_ads_monthly_ios",
+          "subscriptionGroupID" : "21863190",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "19.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6756706618",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "With this plan you can use the app without any ads",
+              "displayName" : "One Year No Ads Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "remove_ads_yearly_ios",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "remove_ads_yearly_ios",
+          "subscriptionGroupID" : "21863190",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

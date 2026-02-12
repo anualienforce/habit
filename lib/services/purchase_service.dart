@@ -4,443 +4,232 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class PurchaseService {
+/// Apple (and Android) in-app purchase service — no RevenueCat.
+/// Premium is unlocked by any of: monthly subscription, yearly subscription, or lifetime purchase.
+/// Product IDs must match App Store Connect (iOS) and Google Play Console (Android).
+class PurchaseService extends ChangeNotifier {
   static final PurchaseService _instance = PurchaseService._internal();
   factory PurchaseService() => _instance;
   PurchaseService._internal();
 
-  // Remove Ads plans - update to your real App Store product IDs
-  static const String monthlySubscriptionId = 'remove_ads_monthly_ios';   // $3
-  static const String yearlySubscriptionId = 'remove_ads_yearly_ios';     // $19
-  static const String removeAdsLifetimeId = 'remove_ads_lifetime_ios';    // $49
-  static const String _premiumKey = 'is_premium_user';
-  static const String _subscriptionEndDateKey = 'subscription_end_date';
-  static const String _subscriptionTypeKey = 'subscription_type';
+  /// Product IDs — must match App Store Connect (iOS) exactly.
+  static const String monthlyProductId = 'remove_ads_monthly_ios';
+  static const String yearlyProductId = 'remove_ads_yearly_ios';
+  static const String lifetimeProductId = 'remove_ads_lifetime_ios';
+
+  static const Set<String> _productIds = {
+    monthlyProductId,
+    yearlyProductId,
+    lifetimeProductId,
+  };
+
+  static const String _premiumKey = 'habit_tracker_premium';
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
-  StreamSubscription<List<PurchaseDetails>>? _subscription;
-
-  // Available products
   List<ProductDetails> _products = [];
+  StreamSubscription<List<PurchaseDetails>>? _subscription;
   bool _isAvailable = false;
-  bool _isPremium = false;
   bool _isInitialized = false;
   bool _isInitializing = false;
+  bool _premiumFromPrefs = false;
+  // Diagnostic state for "Loading plans..." (e.g. on TestFlight)
+  bool _lastIsAvailable = false;
+  List<String> _lastNotFoundIds = [];
+  String? _lastProductError;
 
-  // Debug/diagnostics info for UI + logs.
-  IAPError? _lastIapError;
-  List<String> _lastNotFoundProductIds = [];
-
-  // Getters
-  bool get isPremium => _isPremium;
-  bool get isAvailable => _isAvailable;
   bool get isInitialized => _isInitialized;
-  List<ProductDetails> get products => _products;
-  IAPError? get lastIapError => _lastIapError;
-  List<String> get lastNotFoundProductIds => List.unmodifiable(_lastNotFoundProductIds);
+  bool get lastIsAvailable => _lastIsAvailable;
+  List<String> get lastNotFoundIds => List.unmodifiable(_lastNotFoundIds);
+  String? get lastProductError => _lastProductError;
+  String get productLoadDiagnostic {
+    if (!_lastIsAvailable) return 'Store not available';
+    if (_lastProductError != null) return 'Error: $_lastProductError';
+    if (_lastNotFoundIds.isNotEmpty) return 'Products not found: ${_lastNotFoundIds.join(", ")}';
+    if (_products.isEmpty) return 'No products returned';
+    return '';
+  }
+  bool get isPremium => _premiumFromPrefs;
+  List<ProductDetails> get products => List.unmodifiable(_products);
 
-  ProductDetails? get monthlySubscription =>
-      _products.where((p) => p.id == monthlySubscriptionId).firstOrNull;
+  ProductDetails? get monthlyProduct {
+    try {
+      return _products.firstWhere((p) => p.id == monthlyProductId);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  ProductDetails? get yearlySubscription =>
-      _products.where((p) => p.id == yearlySubscriptionId).firstOrNull;
+  ProductDetails? get yearlyProduct {
+    try {
+      return _products.firstWhere((p) => p.id == yearlyProductId);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  ProductDetails? get removeAdsProduct =>
-      _products.where((p) => p.id == removeAdsLifetimeId).firstOrNull;
+  ProductDetails? get lifetimeProduct {
+    try {
+      return _products.firstWhere((p) => p.id == lifetimeProductId);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  /// Initialize the purchase service
+  ProductDetails? getProductById(String id) {
+    try {
+      return _products.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Initialize in-app purchase and load products. Call once at app startup.
   Future<void> initialize() async {
-    // If we previously initialized successfully and have products, don't redo work.
-    // If initialization ran once but failed / had no products (common during early app startup),
-    // allow callers (like the paywall) to retry.
-    if (_isInitialized && _isAvailable && _products.isNotEmpty) return;
+    if (_isInitialized) return;
     if (_isInitializing) return;
+    _isInitializing = true;
 
     try {
-      _isInitializing = true;
-      print('🛒 Initializing Purchase Service...');
-
-      // Check if in-app purchase is available
-      _isAvailable = await _inAppPurchase.isAvailable();
-      print('🛒 IAP Available: $_isAvailable');
-
-      if (!_isAvailable) {
-        print('❌ In-App Purchase not available on this device');
+      if (kIsWeb || (!Platform.isIOS && !Platform.isAndroid)) {
         _isInitialized = true;
         _isInitializing = false;
+        notifyListeners();
         return;
       }
 
-      // Load premium status from local storage
-      await _loadPremiumStatus();
+      _isAvailable = await _inAppPurchase.isAvailable();
+      _lastIsAvailable = _isAvailable;
+      if (!_isAvailable) {
+        _isInitialized = true;
+        _isInitializing = false;
+        notifyListeners();
+        return;
+      }
 
-      // Listen to purchase updates
-      await _subscription?.cancel();
+      await _loadPremiumFromPrefs();
       _subscription = _inAppPurchase.purchaseStream.listen(
-        _onPurchaseUpdate,
-        onDone: () => print('🛒 Purchase stream closed'),
-        onError: (error) => print('🛒 Purchase stream error: $error'),
+        _onPurchaseUpdates,
+        onDone: () => _subscription?.cancel(),
+        onError: (e) {
+          if (kDebugMode) print('Purchase stream error: $e');
+        },
       );
 
-      // Load available products
       await _loadProducts();
-
-      // Restore previous purchases
-      await _restorePurchases();
-
       _isInitialized = true;
-      _isInitializing = false;
-      print('✅ Purchase Service initialized successfully');
-
-    } catch (e) {
-      print('❌ Error initializing Purchase Service: $e');
-      // Mark as initialized so the app doesn't get stuck retrying at startup,
-      // but allow explicit callers to retry since we keep products empty / unavailable.
+      notifyListeners();
+    } catch (e, st) {
+      if (kDebugMode) {
+        print('PurchaseService init error: $e');
+        print('$st');
+      }
       _isInitialized = true;
+      notifyListeners();
+    } finally {
       _isInitializing = false;
     }
   }
 
-  /// Load available products from the store
+  Future<void> _loadPremiumFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _premiumFromPrefs = prefs.getBool(_premiumKey) ?? false;
+    } catch (_) {}
+  }
+
+  Future<void> _savePremium(bool value) async {
+    if (_premiumFromPrefs == value) return;
+    _premiumFromPrefs = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_premiumKey, value);
+    } catch (_) {}
+    notifyListeners();
+  }
+
   Future<void> _loadProducts() async {
+    _lastProductError = null;
+    _lastNotFoundIds = [];
     try {
-      _lastIapError = null;
-      _lastNotFoundProductIds = [];
-
-      final Set<String> productIds = {
-        monthlySubscriptionId,
-        yearlySubscriptionId,
-        if (Platform.isIOS) removeAdsLifetimeId,
-      };
-      final ProductDetailsResponse response =
-          await _inAppPurchase.queryProductDetails(productIds);
-
-      if (response.error != null) {
-        _lastIapError = response.error;
-        print('❌ Error loading products: ${response.error}');
-        return;
+      final response = await _inAppPurchase.queryProductDetails(_productIds);
+      _lastNotFoundIds = response.notFoundIDs.toList();
+      if (response.notFoundIDs.isNotEmpty && kDebugMode) {
+        print('Product IDs not found: ${response.notFoundIDs}');
       }
-
-      _products = response.productDetails;
-      _lastNotFoundProductIds = response.notFoundIDs.toList();
-      print('🛒 Loaded ${_products.length} products');
-
-      if (_lastNotFoundProductIds.isNotEmpty) {
-        print('⚠️ Product IDs not found in store: $_lastNotFoundProductIds');
+      if (response.productDetails.isNotEmpty) {
+        _products = response.productDetails;
+        notifyListeners();
+      } else {
+        notifyListeners();
       }
-
-      for (final product in _products) {
-        print('   - ${product.id}: ${product.title} (${product.price})');
+    } catch (e, st) {
+      _lastProductError = e.toString();
+      if (kDebugMode) {
+        print('queryProductDetails error: $e');
+        print('$st');
       }
-
-    } catch (e) {
-      print('❌ Error loading products: $e');
+      notifyListeners();
     }
   }
 
-  /// Handle purchase updates
-  void _onPurchaseUpdate(List<PurchaseDetails> purchaseDetailsList) {
-    for (final purchaseDetails in purchaseDetailsList) {
-      print('🛒 Processing purchase: ${purchaseDetails.productID}');
-      print('   Status: ${purchaseDetails.status}');
-
-      switch (purchaseDetails.status) {
+  void _onPurchaseUpdates(List<PurchaseDetails> purchaseDetailsList) {
+    for (final purchase in purchaseDetailsList) {
+      if (!_productIds.contains(purchase.productID)) continue;
+      switch (purchase.status) {
         case PurchaseStatus.pending:
-          print('⏳ Purchase pending...');
           break;
-
         case PurchaseStatus.purchased:
-          print('✅ Purchase completed!');
-          _handleSuccessfulPurchase(purchaseDetails);
-          break;
-
         case PurchaseStatus.restored:
-          print('🔄 Purchase restored!');
-          _handleSuccessfulPurchase(purchaseDetails);
+          _savePremium(true);
+          if (purchase.pendingCompletePurchase) {
+            _inAppPurchase.completePurchase(purchase);
+          }
           break;
-
         case PurchaseStatus.error:
-          print('❌ Purchase error: ${purchaseDetails.error}');
-          _handleFailedPurchase(purchaseDetails);
+          if (kDebugMode) {
+            print('Purchase error: ${purchase.error}');
+          }
           break;
-
         case PurchaseStatus.canceled:
-          print('🚫 Purchase canceled by user');
           break;
       }
-
-      // Complete the purchase (important for consumables)
-      if (purchaseDetails.pendingCompletePurchase) {
-        _inAppPurchase.completePurchase(purchaseDetails);
-      }
     }
   }
 
-  /// Handle successful purchase
-  void _handleSuccessfulPurchase(PurchaseDetails purchaseDetails) async {
-    if (purchaseDetails.productID == monthlySubscriptionId) {
-      await _setPremiumStatus(true);
-      await _setSubscriptionType('monthly');
-      await _setSubscriptionEndDate(DateTime.now().add(const Duration(days: 30)));
-      print('🎉 User subscribed to monthly premium!');
-    } else if (purchaseDetails.productID == yearlySubscriptionId) {
-      await _setPremiumStatus(true);
-      await _setSubscriptionType('yearly');
-      await _setSubscriptionEndDate(DateTime.now().add(const Duration(days: 365)));
-      print('🎉 User subscribed to yearly premium!');
-    } else if (purchaseDetails.productID == removeAdsLifetimeId) {
-      await _setPremiumStatus(true);
-      await _setSubscriptionType('lifetime_remove_ads');
-      await _clearSubscriptionEndDate();
-      print('🎉 User purchased lifetime remove-ads!');
-    }
-  }
-
-  /// Handle failed purchase
-  void _handleFailedPurchase(PurchaseDetails purchaseDetails) {
-    // Log error for analytics/debugging
-    print('💥 Purchase failed for ${purchaseDetails.productID}: ${purchaseDetails.error}');
-  }
-
-  /// Purchase premium subscription (monthly or yearly)
-  Future<bool> purchaseSubscription({required bool isYearly}) async {
+  /// Purchase a product (monthly, yearly, or lifetime). Results come via [purchaseStream]; listen to [isPremium] or this service.
+  Future<bool> buyProduct(ProductDetails product) async {
+    if (!_isAvailable) return false;
     try {
-      if (!_isInitialized || !_isAvailable) {
-        await initialize();
-      }
-      if (!_isAvailable) {
-        print('❌ In-App Purchase not available');
-        return false;
-      }
-
-      // If products weren't loaded (or were empty due to transient startup timing), retry once.
-      if (_products.isEmpty) {
-        await _loadProducts();
-      }
-
-      final subscription = isYearly ? yearlySubscription : monthlySubscription;
-      if (subscription == null) {
-        print('❌ ${isYearly ? "Yearly" : "Monthly"} subscription not found');
-        return false;
-      }
-
-      print('🛒 Initiating ${isYearly ? "yearly" : "monthly"} subscription...');
-
-      final PurchaseParam purchaseParam = PurchaseParam(
-        productDetails: subscription,
-        applicationUserName: null, // Optional: user identifier
-      );
-
-      // Use buyNonConsumable for subscriptions (in_app_purchase plugin handles both)
-      final bool success = await _inAppPurchase.buyNonConsumable(
-        purchaseParam: purchaseParam,
-      );
-
-      print('🛒 Subscription request sent: $success');
-      return success;
-
+      final param = PurchaseParam(productDetails: product);
+      return await _inAppPurchase.buyNonConsumable(purchaseParam: param);
     } catch (e) {
-      print('❌ Error subscribing to premium: $e');
+      if (kDebugMode) print('buyProduct error: $e');
       return false;
     }
   }
 
-  /// Purchase monthly subscription (backward compatibility)
-  Future<bool> purchasePremium() async {
-    return purchaseSubscription(isYearly: false);
-  }
-
-  /// Purchase lifetime remove-ads (iOS only)
-  Future<bool> purchaseRemoveAds() async {
-    try {
-      if (!Platform.isIOS) {
-        print('❌ Remove Ads purchase is only available on iOS.');
-        return false;
-      }
-
-      if (!_isInitialized || !_isAvailable) {
-        await initialize();
-      }
-      if (!_isAvailable) {
-        print('❌ In-App Purchase not available');
-        return false;
-      }
-
-      if (_products.isEmpty) {
-        await _loadProducts();
-      }
-
-      final product = removeAdsProduct;
-      if (product == null) {
-        print('❌ Remove Ads product not found. Check App Store product ID.');
-        return false;
-      }
-
-      print('🛒 Initiating lifetime remove-ads purchase...');
-
-      final PurchaseParam purchaseParam = PurchaseParam(
-        productDetails: product,
-        applicationUserName: null,
-      );
-
-      final bool success = await _inAppPurchase.buyNonConsumable(
-        purchaseParam: purchaseParam,
-      );
-
-      print('🛒 Remove Ads purchase request sent: $success');
-      return success;
-
-    } catch (e) {
-      print('❌ Error purchasing remove-ads: $e');
-      return false;
-    }
-  }
-
-  /// Restore previous purchases
-  Future<void> _restorePurchases() async {
-    try {
-      print('🔄 Restoring previous purchases...');
-      await _inAppPurchase.restorePurchases();
-    } catch (e) {
-      print('❌ Error restoring purchases: $e');
-    }
-  }
-
-  /// Manually restore purchases (for user-initiated restore)
+  /// Restore previous purchases. Premium status updates when restore events arrive on the stream.
   Future<bool> restorePurchases() async {
+    if (!_isAvailable) return false;
     try {
-      print('🔄 User initiated purchase restore...');
       await _inAppPurchase.restorePurchases();
       return true;
     } catch (e) {
-      print('❌ Error restoring purchases: $e');
+      if (kDebugMode) print('restorePurchases error: $e');
       return false;
     }
   }
 
-  /// Load premium status from local storage
-  Future<void> _loadPremiumStatus() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _isPremium = prefs.getBool(_premiumKey) ?? false;
-      print('📱 Premium status loaded: $_isPremium');
-    } catch (e) {
-      print('❌ Error loading premium status: $e');
-      _isPremium = false;
-    }
+  /// Refresh product list and premium status (e.g. after returning to paywall).
+  Future<void> refresh() async {
+    await _loadProducts();
+    await _loadPremiumFromPrefs();
+    notifyListeners();
   }
 
-  /// Save premium status to local storage
-  Future<void> _setPremiumStatus(bool isPremium) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_premiumKey, isPremium);
-      _isPremium = isPremium;
-      print('💾 Premium status saved: $_isPremium');
-    } catch (e) {
-      print('❌ Error saving premium status: $e');
-    }
-  }
-
-  /// Set subscription end date
-  Future<void> _setSubscriptionEndDate(DateTime endDate) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_subscriptionEndDateKey, endDate.toIso8601String());
-      print('📅 Subscription end date saved: $endDate');
-    } catch (e) {
-      print('❌ Error saving subscription end date: $e');
-    }
-  }
-
-  /// Clear subscription end date (for lifetime purchases)
-  Future<void> _clearSubscriptionEndDate() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_subscriptionEndDateKey);
-      print('📅 Subscription end date cleared for lifetime purchase');
-    } catch (e) {
-      print('❌ Error clearing subscription end date: $e');
-    }
-  }
-
-  /// Set subscription type (monthly/yearly)
-  Future<void> _setSubscriptionType(String type) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_subscriptionTypeKey, type);
-      print('📅 Subscription type saved: $type');
-    } catch (e) {
-      print('❌ Error saving subscription type: $e');
-    }
-  }
-
-  /// Get monthly subscription price
-  String getMonthlyPrice() {
-    final subscription = monthlySubscription;
-    return subscription?.price ?? r'$3.00/month';
-  }
-
-  /// Get yearly subscription price
-  String getYearlyPrice() {
-    final subscription = yearlySubscription;
-    return subscription?.price ?? r'$19.00/year';
-  }
-
-  /// Get subscription price (defaults to monthly for backward compatibility)
-  String getPremiumPrice() {
-    return getMonthlyPrice();
-  }
-
-  /// Get remove-ads one-time price (iOS)
-  String getRemoveAdsLifetimePrice() {
-    final product = removeAdsProduct;
-    return product?.price ?? r'$49.00 lifetime';
-  }
-
-  /// Get subscription title
-  String getPremiumTitle() {
-    return 'Premium Subscription';
-  }
-
-  /// Get subscription description
-  String getPremiumDescription() {
-    return 'Remove all advertisements and enjoy premium features';
-  }
-
-  /// Check if user has premium (public method for UI)
-  Future<bool> checkPremiumStatus() async {
-    await _loadPremiumStatus();
-    return _isPremium;
-  }
-
-  /// For testing: simulate premium purchase (DEBUG ONLY)
-  Future<void> debugSetPremium(bool isPremium) async {
-    if (kDebugMode) {
-      await _setPremiumStatus(isPremium);
-      print('🧪 DEBUG: Premium status set to $isPremium');
-    }
-  }
-
-  /// Dispose of resources
+  @override
   void dispose() {
     _subscription?.cancel();
-  }
-
-  /// Get purchase status info for debugging
-  Map<String, dynamic> getDebugInfo() {
-    return {
-      'isInitialized': _isInitialized,
-      'isInitializing': _isInitializing,
-      'isAvailable': _isAvailable,
-      'isPremium': _isPremium,
-      'productsLoaded': _products.length,
-      'monthlySubscriptionFound': monthlySubscription != null,
-      'yearlySubscriptionFound': yearlySubscription != null,
-      'removeAdsFound': removeAdsProduct != null,
-      'lastNotFoundProductIds': _lastNotFoundProductIds,
-      'lastIapError': _lastIapError?.message,
-      'premiumPrice': getPremiumPrice(),
-    };
+    super.dispose();
   }
 }

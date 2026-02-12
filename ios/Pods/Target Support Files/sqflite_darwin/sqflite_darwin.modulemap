@@ -1,4 +1,4 @@
-framework module sqflite_darwin {
+module sqflite_darwin {
   umbrella header "sqflite_darwin-umbrella.h"
 
   export *

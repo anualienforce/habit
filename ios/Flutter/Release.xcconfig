@@ -1,2 +1,6 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+// Required when using a bridging header (Runner-Bridging-Header.h)
+DEFINES_MODULE = NO
+BUILD_LIBRARY_FOR_DISTRIBUTION = NO

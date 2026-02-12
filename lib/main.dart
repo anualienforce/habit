@@ -121,9 +121,10 @@ class _AppInitializerState extends State<AppInitializer> {
     // Initialize notifications (needed before permission screen requests).
     await notificationService.initialize();
 
-    // Initialize ads only on Android.
+    // Initialize Mobile Ads SDK on both Android and iOS (required to avoid native crash on iOS).
+    await AdMobService.initialize();
+    // Load and show ads only on Android.
     if (Platform.isAndroid) {
-      await AdMobService.initialize();
       AdMobService().loadInterstitialAd();
     }
 

@@ -1,4 +1,4 @@
-framework module IosAwnCore {
+module IosAwnCore {
   umbrella header "IosAwnCore-umbrella.h"
 
   export *

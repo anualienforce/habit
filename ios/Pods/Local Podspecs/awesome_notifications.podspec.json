@@ -16,9 +16,7 @@
   "source_files": "Classes/**/*",
   "static_framework": true,
   "dependencies": {
-    "Flutter": [
-
-    ],
+    "Flutter": [],
     "IosAwnCore": [
       "~> 0.10.0"
     ]
